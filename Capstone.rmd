@@ -1,25 +1,93 @@
 ---
-title: "Capston Markdown"
+title: "Capstone Markdown"
 author: "Corey Neff"
 date: "6/29/2021"
-output: html_document
+output: github_document
 ---
-## R Markdown
+## Introduction
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+This project marks the culmination of about a semester's worth (on & off) of effort for my internship at the Addiciton Science Center at ETSU. The project, tentatively titled _"Inter-professional Communication to Prevent Prescription Drug Abuse in Appalachia"_,  is intended to work to understand mechanisms that lessen the impact of prescription abuse/misuse in the Appalachian region. In short, the goal of this project is to determine the extent to which patients communicate with their Healthcare Providers (HCPs), including both physicians and pharmacists,  about issues surrounding prescription drug abuse. Additionally, it will include some comparative analysis among the two HCPs targeted. The work included here is largely visual/graphical in nature, but will also include some humble models like ordinal logistic regression, structural equation modeling, and perhaps even simple machine learning models.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+The data was collected from the geographic target of a 21-county area spanning four states in Central Appalachia via phone, consisting of 60% cell phone and 40% land-lines.
 
-```{r cars}
-summary(cars)
+To begin with, we will load packages needed later and the data.
+
+```{r packages, warning=F, message=F}
+librarian::shelf(foreign, RColorBrewer, svglite, scales, ggpubr,
+                 here, dplyr, ggplot2, plyr, stringr, tidyr,
+                 lavaan, performance, kableExtra, semPlot)
+data <- read.spss("/users/coreyneff/desktop/project2data/didarp.sav",
+                  to.data.frame = TRUE,
+                  use.value.labels = FALSE)
+input <- data
+input$Q4_RC[input$Q4_RC > 100] <- 100
+input$Q9_RC <- input$Q9_RC %>% dplyr::na_if(-99)
+input$Q53 <- input$Q53 %>% dplyr::na_if(99)
+glimpse(data)
 ```
 
-## Including Plots
+## Summary 
 
-You can also embed plots, for example:
+There are a total of 108 variables, but we will not be using most of them. The main outcome variables are questions 17-22. Questions 17-19 ask questions about communication with physicians, while 20-22 ask the same questions about pharmacists. In order from question 17 to 19, physician-related questions read:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+In the past, when you have gotten a prescription for a pain pill or another type of drug that could be abused, approximately what percentage of the time have you...
+
+17. Discussed the fact that the prescription medication could possibly be abused?
+
+18. Discussed secure storage of prescription drugs with abuse potential?
+
+19. Discussed a personal or family history of prescription or other drug abuse?
+
+Again, these three physician-related questions are repeated in questions 20 to 22 for pharmacists instead. Because they are the same 
+questions, it may be beneficial to compare their responses visually.  As such, three graphics will follow: one for each pair of comparisons.
+
+``` {r q17-22, warning=F}
+
+input %>% tidyr::pivot_longer(cols = c(Q17_RC, Q20_RC),
+                                   names_to = "Q20",
+                                   values_to = "Q20_scale") %>%
+      dplyr::select(Q20, Q20_scale) %>%
+      ggplot() +
+      geom_density(aes(Q20_scale, fill = Q20), alpha = 0.65) +
+      labs(fill = "Provider") +
+      scale_fill_discrete(labels = c("Physician",
+                                     "Pharmacist")) +
+      xlab("Percentage") + 
+      ylab("Density") +
+      ggtitle(str_wrap("Approximately what percentage of the time have you discussed with your __ about the fact that the prescription medication could possibly be abused?", 60)) +
+      theme(axis.text.x = element_text(angle = 0)) +
+      theme_minimal()
+
+
+input %>% tidyr::pivot_longer(cols = c(Q18_RC, Q21_RC),
+                                   names_to = "Q21",
+                                   values_to = "Q21_scale") %>%
+      dplyr::select(Q21, Q21_scale) %>%
+      ggplot() +
+      geom_density(aes(Q21_scale, fill = Q21), alpha = 0.65) +
+      labs(fill = "Provider") +
+      scale_fill_discrete(labels = c("Physician",
+                                     "Pharmacist")) +
+      xlab("Percentage") + 
+      ylab("Density") +
+      ggtitle(str_wrap("Approximately what percentage of the time have you discussed with your __ about secure storage of prescription drugs with abuse potential?", 60)) +
+      theme(axis.text.x = element_text(angle = 0)) +
+      theme_minimal() 
+
+input %>% tidyr::pivot_longer(cols = c(Q19_RC, Q22_RC),
+                                   names_to = "Q22",
+                                   values_to = "Q22_scale") %>%
+      dplyr::select(Q22, Q22_scale) %>%
+      ggplot() +
+      geom_density(aes(Q22_scale, fill = Q22), alpha = 0.65) +
+      labs(fill = "Provider") +
+      scale_fill_discrete(labels = c("Physician",
+                                     "Pharmacist")) +
+      xlab("Percentage") + 
+      ylab("Density") +
+      ggtitle(str_wrap("Approximately what precentage of the time have you discussed with your __ about a personal or family history of prescription or other drug abuse?",60)) +
+      theme(axis.text.x = element_text(angle = 0)) +
+      theme_minimal()
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
