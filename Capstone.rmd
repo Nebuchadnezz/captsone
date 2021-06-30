@@ -8,7 +8,7 @@ output: github_document
 
 This project marks the culmination of about a semester's worth (on & off) of effort for my internship at the Addiciton Science Center at ETSU. The project, tentatively titled _"Inter-professional Communication to Prevent Prescription Drug Abuse in Appalachia"_,  is intended to work to understand mechanisms that lessen the impact of prescription abuse/misuse in the Appalachian region. In short, the goal of this project is to determine the extent to which patients communicate with their Healthcare Providers (HCPs), including both physicians and pharmacists,  about issues surrounding prescription drug abuse. Additionally, it will include some comparative analysis among the two HCPs targeted. The work included here is largely visual/graphical in nature, but will also include some humble models like ordinal logistic regression, structural equation modeling, and perhaps even simple machine learning models.
 
-The data was collected from the geographic target of a 21-county area spanning four states in Central Appalachia via phone, consisting of 60% cell phone and 40% land-lines.
+The data was collected from the geographic target of a 21-county area spanning four states in Central Appalachia via phone, consisting of 60% cell phone and 40% land-lines. 
 
 To begin with, we will load packages needed later and the data.
 
@@ -91,3 +91,156 @@ input %>% tidyr::pivot_longer(cols = c(Q19_RC, Q22_RC),
 ```
 
 
+## Immediate Problems
+
+As we can see, one immediate problem is made clear from this data visualization -- non-normality.
+This is partly to be expected, however. If you ask people what percentage of the time they do something, chances are they will ride the fence 
+to some degree. This effect becomes much more pronounced with the second two questions of the three (re: secure storage, family history of drug abuse). In a perfect world, we might assume (or hope, even) that the high frequencies of "0%" don't reflect what is actually going on (i.e. it can be explained as some form of response bias), but I think it is best to take this data at face value. In other words, people *really* tend not to speak with their pharmacists and physicians about these two topics.
+
+The next thing I would be interested in is the demographic spread for each question 17 through 22. There were six main demographic variables of interest: age, race, education, income, relationship status, and gender. I will proceed to visualize these for each response question, but only the code for question 17 will be included for simplicity. The remaining graphics can be found in the github plots folder. First, however, I intend to do some light releveling of the the relevant factors.
+
+``` {r demogprahics, warning = F}
+input$Q94 <- revalue(as.factor(input$Q94), c("1" = "White",
+                                                     "2" = "African American",
+                                                     "3" = "Asian",
+                                                     "4" = "American Indian/Alaska Native",
+                                                     "5" = "Native Hawaiin/Pacific Islander",
+                                                     "6" = "More than one",
+                                                     "7" = "Other"))
+input$Q94 <- relevel(input$Q94, ref='White')
+input$Q95 <- revalue(as.factor(input$Q95), c("1" = "Some High School",
+                                                     "2" = "GED",
+                                                     "3" = "High School",
+                                                     "4" = "Some College",
+                                                     "5" = "Vocational School",
+                                                     "6" = "Associate's Degree",
+                                                     "7" = "Bachelor's Degree",
+                                                     "8" = "Master's Degree",
+                                                     "9" = "Professional Degree",
+                                                     "10" = "Doctoral Degree"))
+input$Q95 <- relevel(input$Q95, ref="Bachelor's Degree")
+input$Q89 <- revalue(as.factor(input$Q89), c("1" = "Male",
+                                                     "2" = "Female"))
+input$Q89 <- relevel(input$Q89, ref="Male")
+input$Q88 <- revalue(as.factor(input$Q88), c("1" = "Married",
+                                                     "2" = "Divorced",
+                                                     "3" = "Widowed",
+                                                     "4" = "Single",
+                                                     "5" = "Partnered"))
+input$Q88 <- relevel(input$Q88, ref="Married")
+Q17_1 <- input %>% 
+      ggplot(aes(y=Q17_RC)) +
+      geom_boxplot(aes(x=Q89), fill = "skyblue") +
+      theme(axis.title.y = element_blank()) +
+      scale_y_continuous(labels = scales::percent_format(scale=1)) +
+      xlab("Gender")
+
+Q17_2 <- input %>% 
+      ggplot(aes(y=Q17_RC)) +
+      geom_boxplot(aes(x=Q88), fill = "tomato") +
+      theme(axis.text.x = element_text(angle = 45, hjust=1),
+            axis.title.y=element_blank()) +
+      scale_y_continuous(labels = scales::percent_format(scale=1)) +
+      xlab("Relationship")
+
+Q17_3 <- input %>% 
+      ggplot(aes(y=Q17_RC)) +
+      geom_boxplot(aes(x=Q94), fill = "lightgreen") +
+      theme(axis.text.x = element_text(angle = 45, hjust=1),
+            axis.title.y=element_blank()) +
+      scale_y_continuous(labels = scales::percent_format(scale=1)) +
+      xlab("Race")
+
+Q17_4 <- input %>% 
+      ggplot(aes(y=Q17_RC)) +
+      geom_boxplot(aes(x=Q95), fill = "orange") +
+      theme(axis.text.x = element_text(angle = 45, hjust=1),
+            axis.title.y=element_blank()) +
+      scale_y_continuous(labels = scales::percent_format(scale=1)) +
+      xlab("Education")
+
+Q17_5 <- input %>% 
+      ggplot(aes(y=Q17_RC)) +
+      geom_point(aes(x=2021-YOB)) +
+      geom_smooth(aes(x=2021-YOB), method = "lm") +
+      scale_y_continuous(labels = scales::percent_format(scale=1)) +
+      theme(axis.title.y = element_blank()) + 
+      xlab("Age")
+
+Q17_6 <- input %>% 
+      ggplot(aes(y=Q17_RC)) +
+      geom_point(aes(x=Q92_RC)) +
+      geom_smooth(aes(x=Q92_RC), method = "lm") +
+      scale_x_continuous(labels = scales::comma) +
+      scale_y_continuous(labels = scales::percent_format(scale=1)) +
+      theme(axis.title.y = element_blank()) +
+      xlab("Income")
+
+arrange1 <- ggpubr::ggarrange(Q17_1,Q17_5,Q17_6,Q17_4,Q17_2,Q17_3, ncol = 3, nrow=2)
+ggpubr::annotate_figure(arrange1,top = text_grob(str_wrap(
+      "Q17. What precentage of the time have you discussed with your physician the fact that the prescription medication could possibly be abused?",60), 
+      color = "black", face = "bold", size = 14))
+```
+
+## Demographics
+
+As you can see, the non normality of both the spread of demographics and responses to question 17 make for some very cluttered visuals. Generally speaking, though, as both age and income increase, people spend less time communicating with their physicians about prescription drug abuse. It is hard to gain much insight from the discrete demographics like gender and education, but those who are male, partnered, have a GED, and African American seem to have a slightly higher median percentage. This could be just an artifact of the data, though.
+
+Now that we've got some basic visualizations done, we can perhaps dip our toes into some modeling. To my mind, there are a handful of ways we can model the data, each with their own flaws.
+
+1. Conduct an ANOVA to test mean differences among the relevant demographic groups.
+
+2. Recode the continuous "What percentage of the time..." response variable as a binary "Yes"/"No" to help get around the zero inflation happening, then do a simple logistic regression.
+
+3. Do a confirmatory factor analysis followed by a structural equation model. The questionnaire is thoroughly grounded in theory, incorporating many constructs related to health-decision theories like the Theory of Planned Behavior. Because of that, many of the questions can be assigned to a latent construct for further analysis.
+
+I am largely partial to the structural equation modeling approach because I would like more practice doing so. To complete this, we simply need to specify the constructs for the model, conduct a confirmatory factor analysis for a hypothesis test on these constructs, then feed the confirmed latent constructs into the structural equation model.
+
+In the interest of brevity, I won't go into depth on the questions included in each proposed factor. It will be important to note, however, that the questions are all ordinal on a scale from 1-10. Normally, factor analysis and structural equation modeling assumes continuous and normally distributed constituents. In this case I am hoping the ordinal responses will approximate that. The factors included are:
+
+1. *Self_efficacy* -- Self efficacy to communicate with HCP
+2. *Would_communicate* -- Openness to communicate with HCP
+3. *Impact* -- Impact of history of drug use on HCP attitudes towards patient.
+4. *Positive_attitude* -- Positive attitudes toward HCP
+5. *Health_literacy* -- General health literacy
+6. *Percentage* -- What percentage of the time do you speak with your HCP about topics surrounding prescription drug abuse
+
+
+
+``` {r CFA, warning = F}
+parameters <- 'self_efficacy =~ Q23_RC+Q24_RC+Q25_RC+Q26_RC
+            would_communicate =~ Q42+Q43+Q44
+            impact =~ Q49+Q50+Q51
+            positive_attitude =~ Q57+Q58+Q59+Q60+Q61+Q62+Q63+Q64+Q65+Q66+Q67
+            health_literacy =~ Q82+Q81+Q83+Q84
+            percentage =~ Q17_RC+Q18_RC+Q19_RC'
+
+cfa_fit <- lavaan::cfa(parameters, data = input, std.lv=TRUE)
+summary(cfa_fit, fit.measures=T,standardized=T)
+```
+
+## Confirmatory Factor Analysis 
+
+These CFI and TLI are both ~0.90, which is good. This model fails the normal RMSEA cutoff of ~0.06 but comes acceptably close, in this case 0.064. The SRMR of 0.048 is below the cutoff of ~0.08. Additionally, all latent constructs seems to be significant. This is all indicative of a decent model fit. There may be some  concern with covariance between the "Impact" and "Percentage" variables, but this level should be fine.
+
+```{r SEM}
+parameters <- 'self_efficacy =~ Q23_RC+Q24_RC+Q25_RC+Q26_RC
+            would_communicate =~ Q42+Q43+Q44
+            positive_attitude =~ Q57+Q58+Q59+Q60+Q61+Q62+Q63+Q64+Q65+Q66+Q67
+            impact =~ Q49+Q50+Q51
+            health_literacy =~ Q82+Q81+Q83+Q84
+            percentage =~ Q17_RC+Q18_RC+Q19_RC
+            percentage ~ self_efficacy + would_communicate +
+            positive_attitude + health_literacy + impact'
+
+sem_model <- lavaan::sem(parameters, data = input, se="bootstrap")
+summary(sem_model, fit.measures = T, rsquare = T)
+
+semPaths(sem_model, 'std', layout = 'tree')
+```
+
+## Structural Equation Model
+
+The model fit indices should be the same as in the confirmatory factor analysis, so we will skip those for now. The main attraction is the regression estimates. Looking at the p-values and a cutoff of $\alpha = 0.10, *would_communicate* and *positive_attitude* are both significant with opposite effect directions. Health literacy is also, probably, acceptably significant. These regression coefficients are interpreted similarly to those in linear regression. For example: for ever one unit increase in *would_communicate*, *percentage* increases by nearly 17. To reword that, openness to communicate greatly increases the percentage of time spent communicating with your HCP, a rather intuitive conclusion.
+
+The structural equation mdoel likely suffers from all of the setbacks we saw earlier -- namely, unmistakeable non-normality of data. Even so, the results aren't terrible and can be useful n their own right. The goal of this project was to investigate communication between patients and HCPs on topics related to prescription drug abuse, and this analysis provides can some interesting insights.
